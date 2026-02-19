@@ -1,0 +1,34 @@
+# Environment files - NEVER commit these!
+.env
+.env.local
+.env.production
+.env*.local
+*.env
+
+# Dependencies
+node_modules/
+order-platform/node_modules/
+order-bot/node_modules/
+
+# Build output
+order-platform/.next/
+order-platform/out/
+order-platform/.next
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
