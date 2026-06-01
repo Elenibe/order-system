@@ -2506,3 +2506,11 @@ bot.action('skip_product', async (ctx) => {
 
 module.exports = bot;
 module.exports.sendVendorQuestionToCustomer = sendVendorQuestionToCustomer;
+
+// ============================================
+// START THE BOT
+// ============================================
+console.log('🤖 Bot starting...');
+console.log('📡 Bot Token:', process.env.BOT_TOKEN ? 'SET ✅' : 'MISSING ❌');
+console.log('🗄 Supabase URL:', process.env.SUPABASE_URL || 'MISSING');
+console.log('🔄 Redis Host:', process.env.REDIS_HOST || 'localhost');

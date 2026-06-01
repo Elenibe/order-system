@@ -12,4 +12,6 @@ RUN npm ci --only=production
 COPY . .
 
 # Start bot
-CMD ["node", "bot.js"]
+CMD ["node", "lib/bot.js"]
+
+

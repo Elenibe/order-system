@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.3'
 
 services:
   # NGINX Reverse Proxy
@@ -22,6 +22,10 @@ services:
     build:
       context: ./order-platform
       dockerfile: Dockerfile
+      args:
+       NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+       NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+       SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_KEY}
     container_name: order-web
     expose:
       - "3000"
@@ -30,6 +34,7 @@ services:
       - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_KEY}
+      - BOT_TOKEN=${BOT_TOKEN}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
@@ -44,6 +49,9 @@ services:
       context: ./order-bot
       dockerfile: Dockerfile
     container_name: order-bot
+    dns: 
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       - NODE_ENV=production
       - BOT_TOKEN=${BOT_TOKEN}

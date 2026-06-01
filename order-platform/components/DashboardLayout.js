@@ -18,65 +18,24 @@ export default function DashboardLayout({ children, userType = 'admin', userData
   const [isOnline, setIsOnline] = useState(true);
   const router = useRouter();
 
-  // Poll for notifications (vendor only)
-// Poll for notifications
 useEffect(() => {
   if (!userData?.id) return;
   
-const fetchNotifications = async () => {
-  try {
-    if (userType === 'vendor') {
-      // Try with retry first
-      try {
-        const ordersResult = await retrySupabaseQuery(() =>
-          supabase
-            .from('orders')
-            .select('id')
-            .eq('vendor_id', userData.id)
-        );
+  const fetchNotifications = async () => {
+    try {
+      if (userType === 'vendor') {
+        // Fetch vendor's orders directly
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('vendor_id', userData.id);
         
-        if (!ordersResult.data?.length) {
+        if (ordersError) {
+          console.error('[v0] Error fetching orders:', ordersError);
           setNotifications([]);
           setUnreadCount(0);
           return;
         }
-        
-        const orderIds = ordersResult.data.map(o => o.id);
-        
-        const messagesResult = await retrySupabaseQuery(() =>
-          supabase
-            .from('order_messages')
-            .select(`
-              id,
-              message_text,
-              sender_type,
-              is_read,
-              created_at,
-              order_id,
-              orders (
-                id,
-                order_number,
-                vendor_id
-              )
-            `)
-            .eq('sender_type', 'customer')
-            .eq('is_read', false)
-            .in('order_id', orderIds)
-            .order('created_at', { ascending: false })
-            .limit(10)
-        );
-        
-        setNotifications(messagesResult.data || []);
-        setUnreadCount(messagesResult.data?.length || 0);
-        
-      } catch (retryError) {
-        // If retry fails, try direct (without retry)
-        console.log('[Notifications] Retry failed, trying direct...');
-        
-        const { data: ordersData } = await supabase
-          .from('orders')
-          .select('id')
-          .eq('vendor_id', userData.id);
         
         if (!ordersData?.length) {
           setNotifications([]);
@@ -86,7 +45,8 @@ const fetchNotifications = async () => {
         
         const orderIds = ordersData.map(o => o.id);
         
-        const { data: messagesData } = await supabase
+        // Fetch unread messages for those orders
+        const { data: messagesData, error: messagesError } = await supabase
           .from('order_messages')
           .select(`
             id,
@@ -107,41 +67,19 @@ const fetchNotifications = async () => {
           .order('created_at', { ascending: false })
           .limit(10);
         
+        if (messagesError) {
+          console.error('[v0] Error fetching messages:', messagesError);
+          setNotifications([]);
+          setUnreadCount(0);
+          return;
+        }
+        
         setNotifications(messagesData || []);
         setUnreadCount(messagesData?.length || 0);
-      }
-      
-    } else if (userType === 'admin') {
-      // Admin logic (same pattern)
-      try {
-        const result = await retrySupabaseQuery(() =>
-          supabase
-            .from('admin_messages')
-            .select(`
-              id,
-              message_text,
-              sender_type,
-              is_read,
-              created_at,
-              vendor_id,
-              subject,
-              vendors (
-                id,
-                company_name
-              )
-            `)
-            .eq('sender_type', 'vendor')
-            .eq('is_read', false)
-            .order('created_at', { ascending: false })
-            .limit(10)
-        );
         
-        setNotifications(result.data || []);
-        setUnreadCount(result.data?.length || 0);
-        
-      } catch (retryError) {
-        // Fallback to direct
-        const { data } = await supabase
+      } else if (userType === 'admin') {
+        // Fetch admin messages directly
+        const { data: adminData, error: adminError } = await supabase
           .from('admin_messages')
           .select(`
             id,
@@ -161,23 +99,27 @@ const fetchNotifications = async () => {
           .order('created_at', { ascending: false })
           .limit(10);
         
-        setNotifications(data || []);
-        setUnreadCount(data?.length || 0);
+        if (adminError) {
+          console.error('[v0] Error fetching admin messages:', adminError);
+          setNotifications([]);
+          setUnreadCount(0);
+          return;
+        }
+        
+        setNotifications(adminData || []);
+        setUnreadCount(adminData?.length || 0);
       }
+    } catch (error) {
+      console.error('[v0] Notification fetch error:', error.message);
+      setNotifications([]);
+      setUnreadCount(0);
     }
-  }  catch (retryError) {
-  console.error('[v0] Admin notifications fetch failed:', retryError.message);
-  // Silently fail and show empty state instead of crashing
-  setNotifications([]);
-  setUnreadCount(0);
-}
-};
+  };
   
   fetchNotifications();
-  const interval = setInterval(fetchNotifications, 5000);
+  const interval = setInterval(fetchNotifications, 5000); // Poll every 5 seconds
   return () => clearInterval(interval);
 }, [userType, userData?.id]);
-
 
 
 useEffect(() => {
